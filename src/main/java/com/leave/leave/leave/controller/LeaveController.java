@@ -3,6 +3,7 @@ package com.leave.leave.leave.controller;
 import com.leave.leave.leave.dto.ApprovalRequest;
 import com.leave.leave.leave.dto.LeaveApplicationRequest;
 import com.leave.leave.leave.dto.LeaveApprovalRequest;
+import com.leave.leave.leave.dto.LeaveTypeSummaryDTO;
 import com.leave.leave.leave.model.Employee;
 import com.leave.leave.leave.model.LeaveType;
 import com.leave.leave.leave.repository.EmployeeRepository;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -52,7 +54,10 @@ public class LeaveController {
         return leaveService.approveLeave(id, request.isApproved(), request.getReason());
     }
 
-
+    @GetMapping("/getAllLeaveType")
+    public List<LeaveTypeSummaryDTO> getAllLeaveTypesSummary() {
+        return leaveService.getAllLeaveTypeSummaries();
+    }
 
 
 }

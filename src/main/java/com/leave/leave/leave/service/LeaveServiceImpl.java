@@ -8,18 +8,15 @@ import com.leave.leave.utility.ErrorCodes;
 import com.leave.leave.utility.ErrorResponse;
 import com.leave.leave.utility.LeaveCalculator;
 import com.leave.leave.utility.SuccessResponse;
-import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 public class LeaveServiceImpl implements LeaveService {
@@ -47,7 +44,6 @@ public class LeaveServiceImpl implements LeaveService {
 
     @Autowired
     private LeaveCalculator calculator;
-
 
 
     @Override
@@ -103,7 +99,6 @@ public class LeaveServiceImpl implements LeaveService {
             return ErrorResponse.buildErrorResponse(ErrorCodes.INTERNAL_SERVER_ERROR, "Failed to apply leave: " + e.getMessage());
         }
     }
-
 
     @Override
     public ResponseEntity<?> getRecentLeaves(String mode, LocalDate current) {
@@ -161,6 +156,7 @@ public class LeaveServiceImpl implements LeaveService {
         leaveApprovalRepository.save(approval);
 
         if (approved) {
+            // ✅ Calculate valid leave days (excluding weekends & holidays)
             int countedDays = calculator.countLeaveDaysExcludingWeekendsAndHolidays(
                     app.getEmployee(), app.getFromDate(), app.getToDate());
 
@@ -171,20 +167,30 @@ public class LeaveServiceImpl implements LeaveService {
                     .findByEmployeeAndAllocationYear(app.getEmployee(), (short) app.getFromDate().getYear())
                     .orElseThrow(() -> new IllegalArgumentException("Leave allocation not found"));
 
-            alloc.setUtilizedBalance(
-                    alloc.getUtilizedBalance().add(totalDays));
+            // ✅ Update utilized balance
+            alloc.setUtilizedBalance(alloc.getUtilizedBalance().add(totalDays));
+
+            // ✅ Recalculate closing balance
             alloc.setClosingBalance(
                     alloc.getOpeningBalance()
                             .add(alloc.getAnnualAccrual())
                             .subtract(alloc.getUtilizedBalance())
                             .add(alloc.getAdjustments())
             );
+
+            // ✅ Set appliedDate to current leave application's appliedDate
+            alloc.setAppliedDate(app.getAppliedDate());
+
+            // ✅ Set leaveDue to total valid days of this approved leave
+            alloc.setLeaveDue(totalDays);  // <-- leaveDue updated here
+
+            alloc.setModifiedDate(OffsetDateTime.now());
             leaveAllocationRepository.save(alloc);
 
             app.setAllocation(alloc);
-            app.setStatus("APPROVED");
+            app.setStatus("Approved");
         } else {
-            app.setStatus("REJECTED");
+            app.setStatus("Rejected");
         }
 
         app.setModifiedDate(OffsetDateTime.now());
@@ -193,6 +199,10 @@ public class LeaveServiceImpl implements LeaveService {
         return ResponseEntity.ok(new SuccessResponse<>("done", "Leave application processed successfully"));
     }
 
-
-
+    @Override
+    public List<LeaveTypeSummaryDTO> getAllLeaveTypeSummaries() {
+        return leaveTypeRepository.findAll().stream()
+                .map(leaveType -> new LeaveTypeSummaryDTO(leaveType.getId(), leaveType.getLeaveName()))
+                .toList();
+    }
 }

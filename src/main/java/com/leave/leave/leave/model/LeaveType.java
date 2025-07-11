@@ -52,6 +52,7 @@ public class LeaveType {
     @Column(name = "modified_date")
     private OffsetDateTime modifiedDate;
 
+
     // Getters & Setters...
 }
 

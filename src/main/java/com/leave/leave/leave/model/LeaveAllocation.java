@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -57,6 +58,11 @@ public class LeaveAllocation {
     @Column(name = "no_of_working_days")
     private BigDecimal noOfWorkingDays;
 
+    @Column(name = "leave_due")
+    private BigDecimal leaveDue;
+
+    @Column(name = "applied_date")
+    private LocalDate appliedDate;
 
     // Getters & Setters...
 }
